@@ -16,104 +16,122 @@ import tensorflow as tf
 class MobileRRN(tf.keras.Model):
     """Implement Mobile RRN architecture.
 
+    Mobile RRN 是 Revisiting Temporal Modeling (RRN) 的轻量版本，适用于移动设备的视频超分辨率任务。
+
     Attributes:
-        scale: An `int` indicates the upsampling rate.
-        base_channels: An `int` represents the number of base channels.
+        scale: 一个 `int`，表示上采样率。
+        base_channels: 一个 `int`，表示基础通道的数量。
     """
 
     def __init__(self,):
-        """Initialize `RRN`."""
+        """初始化 `MobileRRN` 模型。"""
         super().__init__()
-        in_channels = 3
-        out_channels = 3
-        block_num = 5  # the number of residual block in RNN cell
+        in_channels = 3  # 输入通道数（通常为 RGB 图像的 3 个通道）
+        out_channels = 3  # 输出通道数（通常为 RGB 图像的 3 个通道）
+        block_num = 5  # RNN 单元中的残差块数量
 
-        self.base_channels = 16
-        self.scale = 4
+        self.base_channels = 16  # 基础通道数
+        self.scale = 4  # 上采样倍数
 
-        # first conv
+        # 第一个卷积层，提取基础特征
         self.conv_first = tf.keras.layers.Conv2D(
             self.base_channels, kernel_size=3, strides=1, padding='SAME', activation='relu'
         )
-        self.recon_trunk = make_layer(ResidualBlock, block_num, base_channels=self.base_channels)
+        # 残差块序列，主要用于提取更深层次的特征
+        self.recon_trunk = make_layer(
+            ResidualBlock, block_num, base_channels=self.base_channels)
 
+        # 最后的卷积层，用于生成高分辨率的输出
         self.conv_last = tf.keras.layers.Conv2D(
             self.scale * self.scale * out_channels, kernel_size=3, strides=1, padding='SAME'
         )
+        # 隐藏状态的卷积层，用于更新隐藏状态
         self.conv_hidden = tf.keras.layers.Conv2D(
             self.base_channels, kernel_size=3, strides=1, padding='SAME', activation='relu'
         )
 
     def call(self, inputs, training=False):
-        """Forward the given input.
+        """前向传播。
 
         Args:
-            inputs: An input `Tensor` and an `Tensor` represents the hidden state.
-            training: A `bool` indicates whether the current process is training or testing.
+            inputs: 一个包含输入图像序列和隐藏状态的 `Tensor`。
+            training: 一个布尔值，表示当前过程是训练还是测试。
 
         Returns:
-            An output `Tensor`.
+            一个元组 `(out, hidden)`，其中 `out` 是输出 `Tensor`，`hidden` 是更新后的隐藏状态。
         """
-        x, hidden = inputs
-        x1 = x[:, :, :, :3]
-        x2 = x[:, :, :, 3:]
-        _, h, w, _ = x1.shape.as_list()
+        x, hidden = inputs  # 拆分输入和隐藏状态
+        x1 = x[:, :, :, :3]  # 低分辨率输入图像
+        x2 = x[:, :, :, 3:]  # 另一部分输入图像（可能是前一帧）
+        _, h, w, _ = x1.shape.as_list()  # 获取图像的高度和宽度
 
+        # 将低分辨率图像和隐藏状态拼接在一起
         x = tf.concat((x1, x2, hidden), axis=-1)
-        out = self.conv_first(x)
-        out = self.recon_trunk(out)
-        hidden = self.conv_hidden(out)
-        out = self.conv_last(out)
+        out = self.conv_first(x)  # 第一个卷积层
+        out = self.recon_trunk(out)  # 通过残差块序列
+        hidden = self.conv_hidden(out)  # 更新隐藏状态
+        out = self.conv_last(out)  # 最后的卷积层生成高分辨率输出
 
+        # 上采样输出图像
         out = tf.nn.depth_to_space(out, self.scale)
+        # 使用双线性插值将低分辨率图像调整到输出图像的尺寸
         bilinear = tf.image.resize(x2, size=(h * self.scale, w * self.scale))
+        # 将高分辨率输出图像与双线性插值图像相加
         out = out + bilinear
 
+        # 如果不是训练过程，限制输出的像素值在 [0, 255] 范围内
         if not training:
             out = tf.clip_by_value(out, 0, 255)
 
-        return out, hidden
+        return out, hidden  # 返回输出和更新后的隐藏状态
 
 
 class ResidualBlock(tf.keras.Model):
-    """Residual block."""
+    """残差块，用于 Mobile RRN 模型中。
+
+    具有两个卷积层，采用残差连接。
+
+    Attributes:
+        base_channels: 一个 `int`，表示基础通道的数量。
+    """
 
     def __init__(self, base_channels):
-        """Initialize `ResidualBlock`.
+        """初始化 `ResidualBlock`。
 
         Args:
-            base_channels: An `int` represents the number of base channels.
+            base_channels: 一个 `int`，表示基础通道的数量。
         """
         super().__init__()
         self.conv1 = tf.keras.layers.Conv2D(
             base_channels, kernel_size=3, strides=1, padding='SAME', activation='relu'
         )
-        self.conv2 = tf.keras.layers.Conv2D(base_channels, kernel_size=3, strides=1, padding='SAME')
+        self.conv2 = tf.keras.layers.Conv2D(
+            base_channels, kernel_size=3, strides=1, padding='SAME')
 
     def call(self, x):
-        """Forward the given input.
+        """前向传播。
 
         Args:
-            x: An input `Tensor`.
+            x: 输入 `Tensor`。
 
         Returns:
-            An output `Tensor`.
+            一个输出 `Tensor`。
         """
-        identity = x
-        out = self.conv1(x)
-        out = self.conv2(out)
-        return identity + out
+        identity = x  # 保存输入作为残差
+        out = self.conv1(x)  # 第一个卷积层
+        out = self.conv2(out)  # 第二个卷积层
+        return identity + out  # 残差连接
 
 
 def make_layer(basic_block, block_num, **kwarg):
-    """Make layers by stacking the same blocks.
+    """堆叠多个相同的块以形成网络层。
 
     Args:
-        basic_block: A `nn.module` represents the basic block.
-        block_num: An `int` represents the number of blocks.
+        basic_block: 一个 `nn.module`，表示基本块。
+        block_num: 一个 `int`，表示块的数量。
 
     Returns:
-        An `nn.Sequential` stacked blocks.
+        一个 `nn.Sequential`，由堆叠的块组成。
     """
     model = tf.keras.Sequential()
     for _ in range(block_num):
