@@ -10,7 +10,7 @@ dataset:
       num_parallel_calls: 6 # 数据加载的并行调用数
     val: # 验证数据加载器的设置
       batch_size: 1 # 每个批次的样本数量
-  data_dir: data/REDS/ # 数据集的目录
+  data_dir: dataset/REDS/ # 数据集的目录
   degradation: sharp_bicubic # 图像退化类型
   train_frame_num: 10 # 每次训练步骤中使用的图像帧数量
   test_frame_num: 100 # 每次测试步骤中使用的图像帧数量
@@ -22,7 +22,7 @@ model:
 
 learner:
   general:
-    total_steps: 1500000 # 总训练步骤数
+    total_steps: 15000 # 总训练步骤数 默认1500000
     log_train_info_steps: 100 # 记录训练信息的频率（每隔多少步骤）
     keep_ckpt_steps: 10000 # 保存检查点的频率（每隔多少步骤）
     valid_steps: 100000 # 验证频率（每隔多少步骤）
@@ -40,4 +40,5 @@ learner:
     staircase: True # 是否使用阶梯衰减
 
   saver:
-    restore_ckpt: null # 从哪个检查点恢复（如果为 null，则不恢复）
+    restore_ckpt: snapshot/ckpt-2 # 从哪个检查点恢复（如果为 null，则不恢复）
+    # 在 TensorFlow 中，ckpt-2 是检查点的前缀，实际的文件包括 .index 和 .data-00000-of-00001 等文件扩展名，但在使用 Checkpoint.restore() 时，通常只需要指定检查点文件的前缀，而不是具体的文件名或扩展名。
