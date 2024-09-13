@@ -110,9 +110,12 @@ def main(args):
                     [input_tensor, hidden_state], training=False)
                 # 使用前后帧图像进行模型推理，并更新隐藏状态
 
-            imageio.imwrite(
-                save_path / f'{str(i).zfill(3)}_{str(j).zfill(8)}.png', pred_tensor[0])
-            # 将预测结果保存为图像文件，文件名格式为 组号_帧号.png
+                # 将预测结果转换为 0-255 范围的 uint8 数据类型
+                pred_image = (pred_tensor[0].numpy() * 255).astype(np.uint8)
+
+                # 保存图像
+                imageio.imwrite(save_path / f'{str(i).zfill(3)}_{str(j).zfill(8)}.png', pred_image)
+
 
 
 if __name__ == '__main__':
