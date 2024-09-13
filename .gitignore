@@ -1,0 +1,11 @@
+#排除数据集
+/dataset/test
+/dataset/train
+/dataset/val
+/dataset
+/learner
+/util
+/snapshot
+*.log
+/model/__pycache__
+/results
