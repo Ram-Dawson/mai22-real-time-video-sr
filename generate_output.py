@@ -109,13 +109,32 @@ def main(args):
                 pred_tensor, hidden_state = model(
                     [input_tensor, hidden_state], training=False)
                 # 使用前后帧图像进行模型推理，并更新隐藏状态
+                
+                # # 将图片名称写入 image.txt
+                # with open('image.txt', 'w') as f:
+                #     f.write(str(data_dir / str(i).zfill(3) / f'{str(j).zfill(8)}.png'))
+                #     f.write('\n')
 
-                # 将预测结果转换为 0-255 范围的 uint8 数据类型
-                pred_image = (pred_tensor[0].numpy() * 255).astype(np.uint8)
+                # # 将未转换的图像矩阵写入 image.txt
+                # with open('image.txt', 'a') as f:
+                #     f.write('未转换的图像矩阵')
+                #     f.write(str(input_tensor[0].numpy()))
+                #     f.write('\n')
+                    
 
-                # 保存图像
-                imageio.imwrite(save_path / f'{str(i).zfill(3)}_{str(j).zfill(8)}.png', pred_image)
+                # # 将预测结果转换为 0-255 范围的 uint8 数据类型
+                # pred_image = tf.cast(pred_tensor[0], tf.uint8).numpy()
 
+                # # 将转换后的图像矩阵写入 image.txt
+                # with open('image.txt', 'a') as f:
+                #     f.write('转换后的图像矩阵')
+                #     f.write(str(pred_image))
+                #     f.write('\n\n')
+
+                # # 保存图像
+                # imageio.imwrite(save_path / f'{str(i).zfill(3)}_{str(j).zfill(8)}.png', pred_image)
+
+                imageio.imwrite(save_path / f'{str(i).zfill(3)}_{str(j).zfill(8)}.png', pred_tensor[0])
 
 
 if __name__ == '__main__':
