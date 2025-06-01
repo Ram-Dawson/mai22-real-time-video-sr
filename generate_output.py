@@ -73,7 +73,7 @@ def main(args):
 
     # testing 测试过程
     for i in range(30):  # 循环处理 30 组视频
-        for j in range(100):  # 每组视频中处理 100 帧图像
+        for j in range(300):  # 每组视频中处理 100 帧图像
             if j == 0:  # 如果是第一个帧
                 input_image = np.expand_dims(
                     imageio.imread(data_dir / str(i).zfill(3) / f'{str(j).zfill(8)}.png'), axis=0
@@ -91,6 +91,9 @@ def main(args):
                 pred_tensor, hidden_state = model(
                     [input_tensor, hidden_state], training=False)
                 # 调用模型进行前向推理，返回预测结果和更新后的隐藏状态
+                
+                imageio.imwrite(save_path / f'{str(i).zfill(3)}_{str(j).zfill(8)}.png', pred_tensor[0])
+                
             else:
                 input_image_1 = np.expand_dims(
                     imageio.imread(data_dir / str(i).zfill(3) / f'{str(j-1).zfill(8)}.png'), axis=0

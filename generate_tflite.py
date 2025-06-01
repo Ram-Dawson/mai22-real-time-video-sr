@@ -51,7 +51,7 @@ def main(args):
                 input_tensor = tf.concat([input_image, input_image], axis=-1)
                 print(f"Input tensor shape: {input_tensor.shape}")
                 # 初始化隐藏状态为全零
-                hidden_state = tf.zeros([b, h, w, 16])
+                hidden_state = tf.zeros([b, h, w, 32])
                 # 初始化隐藏状态为全零，大小为批次、高度、宽度和模型的基础通道数
                 print(f"Hidden state shape: {hidden_state.shape}")
                 #输入张量与隐藏状态
